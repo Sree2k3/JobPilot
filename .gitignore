@@ -1,0 +1,30 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Data - raw CSVs, downloaded resumes, profiles, scraped jobs
+data/backups/
+data/resumes/
+data/profiles/
+data/scraped/
+data/sent_history/
+
+# Logs
+logs/
+
+# Temp debug files
+_e2e_*
+_pipeline_*
+_naukri_*
+
+# IDE
+.vscode/
+.idea/
+*.swp
