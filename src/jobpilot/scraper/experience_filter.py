@@ -93,9 +93,9 @@ def parse_job_experience(job: dict) -> tuple[Optional[int], Optional[int]]:
         return (int(nums[0]), int(nums[1]))
     if len(nums) == 1:
         n = int(nums[0])
-        # "5+ Yrs" → (5, 30)
+        # "5+ Yrs" → (5, 50) — open-ended "at least n years"
         if "+" in raw:
-            return (n, 30)
+            return (n, 50)
         return (n, n)
 
     return (None, None)
@@ -149,10 +149,12 @@ def is_experience_match(
     if j_max is not None and j_max < c_min - tolerance:
         return False
 
-    # 4. The job's midpoint shouldn't be too far from candidate's midpoint
-    j_mid = (j_min + j_max) / 2 if j_max is not None else j_min
-    if j_mid is not None and j_mid > c_mid + tolerance + 1:
-        return False
+    # 4. Midpoint check — skip for open-ended ranges ("5+ Yrs" → max=50)
+    #    because the inflated max makes the midpoint meaningless.
+    if j_max is not None and j_max < 30:  # only apply to well-bounded ranges
+        j_mid = (j_min + j_max) / 2
+        if j_mid > c_mid + tolerance + 1:
+            return False
 
     return True
 

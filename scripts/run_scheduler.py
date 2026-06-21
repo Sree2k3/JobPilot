@@ -253,7 +253,7 @@ def _execute_full_pipeline() -> dict:
 
         # ── Phase 3: Search + email for each candidate ──
         print("\n--- Phase 3: Job Search Agents ---")
-        from src.jobpilot.scraper.search_agent import search_for_candidate
+        from src.jobpilot.scraper.search_agent import search_for_candidate, get_current_sheet_entries
         from src.jobpilot.scraper.llm_client import DEFAULT_MODEL
 
         # Collect all profile JSONs
@@ -269,6 +269,20 @@ def _execute_full_pipeline() -> dict:
             name = combined.get("full_name", fpath.stem)
             email = combined.get("email") or form_data.get("email") or ""
             candidates.append((name, email, combined))
+
+        # Cross-reference against current sheet — only process active entries
+        sheet_entries = get_current_sheet_entries()
+        if sheet_entries:
+            before = len(candidates)
+            candidates = [
+                (n, e, p) for n, e, p in candidates
+                if (e.strip().lower(), n.strip().lower()) in sheet_entries
+            ]
+            skipped = before - len(candidates)
+            if skipped:
+                print(f"  Skipped {skipped} candidate(s) removed from the sheet")
+        else:
+            print("  [WARN] Could not fetch sheet entries — processing all profiles")
 
         result["phase3_candidates"] = len(candidates)
         print(f"  Found {len(candidates)} candidate(s) for Phase 3")

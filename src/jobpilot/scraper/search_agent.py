@@ -20,6 +20,50 @@ from .email_sender import send_job_report, is_email_configured
 from .experience_filter import prefilter_by_experience, parse_candidate_experience
 from .sent_history import filter_new_jobs, mark_as_sent
 
+
+def get_current_sheet_entries() -> set[tuple[str, str]]:
+    """
+    Fetch the current Google Sheet and return ``{(email_lower, name_lower), ...}``
+    for every row.
+
+    This is used to ensure Phase 3 only processes people still on the sheet.
+    """
+    try:
+        from src.jobpilot.intake.fetcher import fetch_all
+        import pandas as pd
+
+        df = fetch_all()
+
+        def _safe_val(row, col_hint):
+            """Get a value from a DataFrame row, matching by substring."""
+            if col_hint in row.index:
+                val = row[col_hint]
+            else:
+                cl = col_hint.strip().lower()
+                matched = None
+                for c in row.index:
+                    if cl in c.strip().lower():
+                        matched = c
+                        break
+                if matched is None:
+                    return ""
+                val = row[matched]
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                return ""
+            return str(val).strip()
+
+        entries: set[tuple[str, str]] = set()
+        for _, row in df.iterrows():
+            email = _safe_val(row, "Email Address").lower()
+            name = _safe_val(row, "Full Name").lower()
+            if email and name:
+                entries.add((email, name))
+        logger.info("Current sheet has %d entry/entries", len(entries))
+        return entries
+    except Exception as e:
+        logger.warning("Could not fetch current sheet entries: %s", e)
+        return set()
+
 logger = logging.getLogger(__name__)
 
 # How many pages per keyword
@@ -174,7 +218,7 @@ def search_for_candidate(
         job["missing_skills"] = "; ".join(missing[:10]) if missing else ""
 
     # Save CSV
-    with open(csv_path, "w", newline="", encoding="utf-8-sig") as f:
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=output_fields)
         writer.writeheader()
         for job in scored:
@@ -200,7 +244,7 @@ def search_for_candidate(
 
     # ── Step 5: Email the candidate (skip already-sent jobs) ──
     if recipient_email:
-        jobs_to_send = filter_new_jobs(recipient_email, scored)
+        jobs_to_send = filter_new_jobs(recipient_email, scored, name=profile_name)
         skipped = len(scored) - len(jobs_to_send)
         if skipped:
             print(f"\n  [History] Removed {skipped} previously sent job(s) — {len(jobs_to_send)} new job(s) to send")
@@ -219,7 +263,7 @@ def search_for_candidate(
             if sent:
                 print(f"  [Email] Report sent successfully!")
                 sent_links = [j.get("application_link", "") for j in jobs_to_send if j.get("application_link")]
-                mark_as_sent(recipient_email, sent_links)
+                mark_as_sent(recipient_email, sent_links, name=profile_name)
             else:
                 print(f"  [Email] Could not send (check SMTP settings in .env)")
     else:

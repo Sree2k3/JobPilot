@@ -18,7 +18,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.jobpilot.scraper.search_agent import search_for_candidate
+from src.jobpilot.scraper.search_agent import search_for_candidate, get_current_sheet_entries
 from src.jobpilot.scraper.llm_client import DEFAULT_MODEL
 
 
@@ -115,6 +115,19 @@ def main():
                 sys.exit(1)
 
     print(f"  Candidates to process: {len(candidates)}\n")
+
+    # ── Cross-reference against current sheet (skip removed entries) ──
+    if not args.profile:
+        sheet_entries = get_current_sheet_entries()
+        if sheet_entries:
+            before = len(candidates)
+            candidates = [
+                (n, e, p) for n, e, p in candidates
+                if (e.strip().lower(), n.strip().lower()) in sheet_entries
+            ]
+            skipped = before - len(candidates)
+            if skipped:
+                print(f"  Skipped {skipped} candidate(s) not in current sheet\n")
 
     # ── Run search for each candidate ──
     all_results = {}

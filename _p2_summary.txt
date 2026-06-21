@@ -1,0 +1,34 @@
+
+============================================================
+  JOBPILOT - PHASE 2: RESUME PARSING PIPELINE
+  2026-06-21 21:04:06
+============================================================
+
+ Step 1: Fetching intake responses...
+  [OK] Fetched 1 response(s)
+  Found 1 response(s)
+
+ Step 2: Downloading resume files...
+  Found column: 'Resume Upload'
+      Already exists -> D:\Joblist\data\resumes\1YuyqzFdckKR1mb029D9LAMZ5amem936t.pdf
+  Found 2 existing profile(s) — will skip duplicates
+
+ Step 3-4: Extracting and analyzing resumes...
+
+  --------------------------------------------------
+  Processing response #1...
+      Duplicate detected: email 'izaanahmad37@gmail.com' already exists
+      Existing profile: profile_Izaan_Ahmad_Ibrahim_Sayed_0.json
+      Skipping this response entirely
+
+ Step 5: Saving profiles...
+
+============================================================
+  PIPELINE COMPLETE
+  New responses: 0 candidate(s)
+  Skipped (duplicate): 1
+  Resumes successfully parsed: 0
+  Profiles saved: 0
+============================================================
+
+Profiles: 0

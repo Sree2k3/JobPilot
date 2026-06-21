@@ -280,7 +280,7 @@ def scrape_naukri(
 
 def _write_csv(path: Path, rows: list[dict]) -> None:
     """Write job rows to a CSV file."""
-    with open(path, "w", newline="", encoding="utf-8-sig") as f:
+    with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
         writer.writeheader()
         writer.writerows(rows)

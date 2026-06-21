@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd D:/Joblist && python scripts/fetch_intake.py)",
+      "Bash(cd D:/Joblist && python scripts/parse_resumes.py)",
+      "Bash(cd D:/Joblist && python scripts/search_jobs.py *)",
+      "Bash(cd D:/Joblist && python scripts/run_scheduler.py *)",
+      "Bash(cd D:/Joblist && python -m pytest tests/*)",
+      "Bash(cd D:/Joblist && python scripts/run_scheduler.py)",
+      "Bash(python scripts/fetch_intake.py)",
+      "Bash(python scripts/parse_resumes.py)",
+      "Bash(python scripts/search_jobs.py *)",
+      "Bash(python scripts/run_scheduler.py *)",
+      "Bash(python -m pytest tests/*)"
+    ]
+  }
+}

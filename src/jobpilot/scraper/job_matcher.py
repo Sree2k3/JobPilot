@@ -77,7 +77,9 @@ def score_jobs(
 
         if result and "matches" in result and len(result["matches"]) > 0:
             for m in result["matches"]:
-                idx = m.get("index") or m.get("job_index")
+                idx = m.get("index")
+                if idx is None:
+                    idx = m.get("job_index")
                 if idx is None:
                     continue
                 global_idx = batch_start + idx

@@ -35,14 +35,14 @@ def generate_keywords(
     model: str = DEFAULT_MODEL,
 ) -> list[str]:
     """
-    Generate 3 search keywords from a candidate's combined profile data.
+    Generate up to 5 search keywords from a candidate's combined profile data.
 
     Args:
         profile: The dict from CandidateProfile.combine().
         model: OpenRouter model ID.
 
     Returns:
-        List of 3 search keyword strings.  Falls back to the preferred_roles
+        List of up to 5 search keyword strings.  Falls back to the preferred_roles
         field if the LLM is unavailable.
     """
     # Build a compact profile summary for the LLM
@@ -60,7 +60,7 @@ def generate_keywords(
             result["queries"],
             result.get("rationale", ""),
         )
-        return result["queries"][:3]
+        return result["queries"][:5]
 
     # Fallback: use the preferred_roles field verbatim
     fallback = _fallback_keywords(profile)
@@ -100,7 +100,9 @@ def _fallback_keywords(profile: dict) -> list[str]:
     """Fallback keywords when the LLM is unavailable."""
     roles = (profile.get("preferred_roles") or "").strip()
     if roles:
-        return [roles.lower()]
+        # Split comma-separated roles, generate a keyword per role
+        parts = [r.strip().lower() for r in roles.split(",") if r.strip()]
+        return parts[:5]
 
     title = (profile.get("current_job_title") or "").strip()
     if title:

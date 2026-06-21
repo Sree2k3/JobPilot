@@ -12,7 +12,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email.header import Header
-from email.utils import formataddr, formatdate
+from email.utils import formataddr, formatdate, make_msgid
 from email import encoders
 from datetime import datetime
 from pathlib import Path
@@ -204,7 +204,7 @@ def _build_csv_bytes(jobs: list[dict]) -> bytes:
             j.get("application_link", ""),
         ])
 
-    return output.getvalue().encode("utf-8-sig")
+    return output.getvalue().encode("utf-8")
 
 
 def send_job_report(
@@ -243,11 +243,12 @@ def send_job_report(
     msg["From"] = formataddr((cfg["from_name"], cfg["from_email"]))
     msg["To"] = recipient_email
     msg["Subject"] = Header(
-        f"🎯 JobPilot — {len(display_jobs)} Job Matches Found for You ({datetime.now().strftime('%d %b %Y')})",
+        f"JobPilot — {len(display_jobs)} Job Matches Found for You ({datetime.now().strftime('%d %b %Y')})",
         "utf-8",
     )
     msg["Date"] = formatdate(localtime=True)
     msg["X-Mailer"] = "JobPilot-1.0"
+    msg["Message-ID"] = make_msgid(domain="jobpilot.local")
 
     # ── Part 1: HTML body ──
     html = _build_html_body(candidate_name, display_jobs)
@@ -276,11 +277,17 @@ def send_job_report(
     try:
         logger.info("Connecting to SMTP %s:%d ...", cfg["host"], cfg["port"])
         server = smtplib.SMTP(cfg["host"], cfg["port"])
+        server.set_debuglevel(1)  # log SMTP conversation
         server.starttls()
         server.login(cfg["user"], cfg["password"])
-        server.sendmail(cfg["from_email"], [recipient_email], msg.as_string())
+        result = server.sendmail(cfg["from_email"], [recipient_email], msg.as_string())
         server.quit()
-        logger.info("Email sent to %s", recipient_email)
+        if result:
+            logger.warning("SMTP deferred delivery for %s: %s", recipient_email, result)
+            print(f"  [Email] SMTP accepted but deferred — check spam folder: {result}")
+        else:
+            logger.info("Email accepted by SMTP server for %s", recipient_email)
+            print(f"  [Email] ✓ Accepted by SMTP server for {recipient_email}")
         return True
     except smtplib.SMTPAuthenticationError:
         logger.error(

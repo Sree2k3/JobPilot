@@ -104,7 +104,7 @@ def run_pipeline(
 
         profile = CandidateProfile(
             full_name=_g(row, "Full Name"),
-            date_of_birth=_g(row, "Date of Birth"),
+            date_of_birth="",
             phone=_g(row, "Phone Number"),
             email=_g(row, "Email Address"),
             current_city=_g(row, "Current City/ Location") or _g(row, "Current City / Location"),
@@ -131,17 +131,19 @@ def run_pipeline(
             profiles.append(profile)
             continue
 
-        # ── Dedup check: skip if we already have a profile for this email ──
+        # ── Dedup check: skip if we already have this SAME person (email + name) ──
         profile_email = profile.email.lower().strip() if profile.email else ""
-        if profile_email and dedup_check:
-            if profile_email in existing_by_email or profile_email in seen_emails:
-                existing_path = existing_by_email.get(profile_email, "(earlier in this batch)")
-                print(f"      Duplicate detected: email '{profile.email}' already exists")
+        profile_name_key = profile.full_name.strip().lower() if profile.full_name else ""
+        profile_key = (profile_email, profile_name_key)
+        if profile_email and profile_name_key and dedup_check:
+            if profile_key in existing_by_email or profile_key in seen_emails:
+                existing_path = existing_by_email.get(profile_key, "(earlier in this batch)")
+                print(f"      Duplicate detected: '{profile.full_name}' <{profile.email}> already exists")
                 print(f"      Existing profile: {existing_path}")
                 print(f"      Skipping this response entirely")
                 skip_count += 1
                 continue          # don't append to profiles at all
-            seen_emails.add(profile_email)
+            seen_emails.add(profile_key)
 
         # Download (if not already mapped)
         local_path = link_to_path.get(profile.resume_drive_link) if profile.resume_drive_link else None
@@ -189,15 +191,16 @@ def run_pipeline(
     return profiles
 
 
-def _load_existing_profile_index(profiles_dir: Path) -> dict[str, str]:
-    """Scan saved profile JSONs and build email -> filename index.
+def _load_existing_profile_index(profiles_dir: Path) -> dict[tuple[str, str], str]:
+    """Scan saved profile JSONs and build (email, name) -> filename index.
 
     Returns:
-        dict mapping lowercase email to profile filename.
+        dict mapping ``(lowercase_email, lowercase_name)`` tuple to profile filename.
+        Both email and name must be present for a key to be created.
     """
     import json
 
-    index: dict[str, str] = {}
+    index: dict[tuple[str, str], str] = {}
     if not profiles_dir.exists():
         return index
 
@@ -210,14 +213,18 @@ def _load_existing_profile_index(profiles_dir: Path) -> dict[str, str]:
         # Try combined dict first (has richer data), fallback to form_data
         combined = data.get("combined") or data.get("form_data") or {}
         email = (combined.get("email") or "").strip().lower()
-        if email:
-            index[email] = fpath.name
+        name = (combined.get("full_name") or "").strip().lower()
 
-        # Also check form_data top-level email
+        if email and name:
+            index[(email, name)] = fpath.name
+
+        # Also check form_data top-level email if combined didn't have it
         if not email and "form_data" in data and isinstance(data["form_data"], dict):
-            email = (data["form_data"].get("email") or "").strip().lower()
-            if email:
-                index[email] = fpath.name
+            fd = data["form_data"]
+            email2 = (fd.get("email") or "").strip().lower()
+            name2 = (fd.get("full_name") or "").strip().lower()
+            if email2 and name2:
+                index[(email2, name2)] = fpath.name
 
     return index
 
