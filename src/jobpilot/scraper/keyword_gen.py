@@ -81,6 +81,9 @@ def _profile_to_summary(profile: dict) -> str:
     if roles := profile.get("preferred_roles"):
         lines.append(f"Preferred role: {roles}")
 
+    if dept := profile.get("department"):
+        lines.append(f"Department: {dept}")
+
     tech_skills = profile.get("technical_skills", [])
     all_skills = profile.get("skills", [])
     if tech_skills:

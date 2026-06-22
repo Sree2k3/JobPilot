@@ -75,6 +75,7 @@ def search_for_candidate(
     profile_name: str = "candidate",
     model: str = DEFAULT_MODEL,
     max_pages_per_keyword: int = DEFAULT_PAGES_PER_KEYWORD,
+    freshness_days: int = 7,
     output_dir: Optional[str] = None,
     recipient_email: Optional[str] = None,
 ) -> list[dict]:
@@ -91,6 +92,7 @@ def search_for_candidate(
         profile_name: Used in output filenames.
         model: OpenRouter model ID.
         max_pages_per_keyword: Pages to scrape per keyword.
+        freshness_days: Naukri freshness filter in days (default 7 = 1 week).
         output_dir: Where to save results (default: ``data/scraped/``).
 
     Returns:
@@ -147,6 +149,7 @@ def search_for_candidate(
         jobs = scrape_naukri(
             keyword=kw,
             max_pages=max_pages_per_keyword,
+            freshness_days=freshness_days,
             output_dir=output_dir,
         )
 

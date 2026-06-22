@@ -59,6 +59,7 @@ def show_summary(df):
         print(f"    Employment Type  : {_g(row, 'Employment Type')}")
         print(f"    Work Mode        : {_g(row, 'Work Mode Preference')}")
         print(f"    Seniority        : {_g(row, 'Seniority Level')}")
+        print(f"    Department       : {_g(row, 'Department')}")
 
 
 def save_backup(df, directory="data/backups"):

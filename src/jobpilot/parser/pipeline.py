@@ -117,6 +117,7 @@ def run_pipeline(
             work_mode=_g(row, "Work Mode Preference"),
             seniority_level=_g(row, "Seniority Level"),
             preferred_roles=_g(row, "Preferred Job Role"),
+            department=_g(row, "Department"),
             consent_resume_parsing=_g(row, "Consent for Resume Parsing"),
             consent_job_search=_g(row, "Consent for Automated Job Search"),
             consent_email=_g(row, "Consent for Email Delivery"),
@@ -306,6 +307,7 @@ def _save_profiles(profiles: list[CandidateProfile], output_dir: Path) -> int:
                 "work_mode": p.work_mode,
                 "seniority_level": p.seniority_level,
                 "preferred_roles": p.preferred_roles,
+                "department": p.department,
                 "consents": {
                     "resume_parsing": p.consent_resume_parsing,
                     "job_search": p.consent_job_search,

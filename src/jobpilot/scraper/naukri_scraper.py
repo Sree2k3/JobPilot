@@ -47,6 +47,8 @@ CSV_HEADERS = [
 
 # How many pages to scrape (20 jobs per page).
 DEFAULT_MAX_PAGES = 5
+# Freshness filter — only show jobs posted within this many days (Naukri param).
+DEFAULT_FRESHNESS_DAYS = 7
 # Selenium waits (seconds).
 PAGE_LOAD_WAIT = 10
 SCROLL_PAUSE = 1.5
@@ -152,17 +154,25 @@ def _create_driver() -> webdriver.Chrome:
     return driver
 
 
-def _navigate_to_search(driver: webdriver.Chrome, keyword: str, page: int = 1) -> str:
+def _navigate_to_search(
+    driver: webdriver.Chrome,
+    keyword: str,
+    page: int = 1,
+    freshness_days: int = DEFAULT_FRESHNESS_DAYS,
+) -> str:
     """
     Navigate to the Naukri search results page for a keyword.
 
     First visits the home page (to establish cookies for Akamai), then
     navigates to the search results.  For page > 1, appends the page param.
+    Appends ``?freshness=N`` to filter by posting date (default 7 days).
     """
     keyword_slug = keyword.lower().replace(" ", "-").replace("--", "-")
     url = f"https://www.naukri.com/{keyword_slug}-jobs"
     if page > 1:
         url = f"https://www.naukri.com/{keyword_slug}-jobs-{page}"
+    if freshness_days:
+        url += f"?freshness={freshness_days}"
 
     driver.get(url)
 
@@ -187,6 +197,7 @@ def _navigate_to_search(driver: webdriver.Chrome, keyword: str, page: int = 1) -
 def scrape_naukri(
     keyword: str,
     max_pages: int = DEFAULT_MAX_PAGES,
+    freshness_days: int = DEFAULT_FRESHNESS_DAYS,
     output_dir: Optional[str] = None,
 ) -> list[dict]:
     """
@@ -195,6 +206,7 @@ def scrape_naukri(
     Args:
         keyword: Job search term (e.g. "ai", "python developer", "data scientist").
         max_pages: How many result pages to scrape (20 jobs/page).
+        freshness_days: Only show jobs posted within this many days (Naukri param).
         output_dir: Directory to save CSV output.  Defaults to ``data/scraped/``.
 
     Returns:
@@ -229,7 +241,7 @@ def scrape_naukri(
         # Scrape each page
         for page_num in range(1, max_pages + 1):
             logger.info("Fetching page %d/%d ...", page_num, max_pages)
-            actual_url = _navigate_to_search(driver, keyword, page=page_num)
+            actual_url = _navigate_to_search(driver, keyword, page=page_num, freshness_days=freshness_days)
 
             # Extract job cards
             page_jobs = driver.execute_script(_job_tuple_script())
@@ -309,11 +321,18 @@ if __name__ == "__main__":
         default=None,
         help="Output directory (default: data/scraped/)",
     )
+    parser.add_argument(
+        "--freshness",
+        type=int,
+        default=DEFAULT_FRESHNESS_DAYS,
+        help=f"Freshness in days (Naukri filter, default: {DEFAULT_FRESHNESS_DAYS})",
+    )
 
     args = parser.parse_args()
     jobs = scrape_naukri(
         keyword=args.keyword,
         max_pages=args.pages,
+        freshness_days=args.freshness,
         output_dir=args.output,
     )
 

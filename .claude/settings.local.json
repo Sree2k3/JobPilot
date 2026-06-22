@@ -20,7 +20,8 @@
       "Bash(more *)",
       "Bash(python scripts/search_jobs.py --name \"Izaan\" --pages 2)",
       "Bash(python __debug_scoring.py)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(SMTP_USER=\"\" SMTP_PASSWORD=\"\" python scripts/search_jobs.py --freshness 7 --pages 1 --name \"Sachin\")"
     ]
   }
 }

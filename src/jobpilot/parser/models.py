@@ -88,6 +88,7 @@ class CandidateProfile:
     work_mode: str = ""
     seniority_level: str = ""
     preferred_roles: str = ""
+    department: str = ""
     consent_resume_parsing: str = ""
     consent_job_search: str = ""
     consent_email: str = ""
@@ -116,6 +117,7 @@ class CandidateProfile:
             "work_mode": self.work_mode,
             "seniority_level": self.seniority_level,
             "preferred_roles": self.preferred_roles,
+            "department": self.department,
         }
 
         if self.parsed_resume:

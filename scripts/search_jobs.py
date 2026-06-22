@@ -71,6 +71,12 @@ def main():
         default=3,
         help="Pages to scrape per keyword (20 jobs/page, default: 3).",
     )
+    parser.add_argument(
+        "--freshness",
+        type=int,
+        default=7,
+        help="Naukri freshness filter in days (default: 7 = last week).",
+    )
 
     args = parser.parse_args()
 
@@ -143,6 +149,7 @@ def main():
             profile_name=name,
             model=args.model,
             max_pages_per_keyword=args.pages,
+            freshness_days=args.freshness,
             recipient_email=email if email else None,
         )
         all_results[name] = results

@@ -129,6 +129,8 @@ def _profile_to_summary(profile: dict) -> str:
         lines.append(f"Location: {loc}")
     if roles := profile.get("preferred_roles"):
         lines.append(f"Preferred roles: {roles}")
+    if dept := profile.get("department"):
+        lines.append(f"Department: {dept}")
     if mode := profile.get("work_mode"):
         lines.append(f"Work mode preference: {mode}")
     if emp := profile.get("employment_type"):
