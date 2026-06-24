@@ -159,13 +159,14 @@ def _update_calendar_cache(next_fire: datetime) -> None:
 
 # ── Core scheduler ────────────────────────────
 
-def run_scheduler(once: bool = False) -> None:
+def run_scheduler(once: bool = False, name_filter: Optional[str] = None) -> None:
     """
     Main scheduler loop.
 
     Args:
         once: If True, run the pipeline immediately and exit (for testing).
               If False (default), loop forever checking the calendar.
+        name_filter: If set, only process candidates whose name contains this string.
     """
     calendar = _load_calendar()
     day_names = ", ".join(f"{d} @ {h}:00" for d, h in calendar)
@@ -180,7 +181,7 @@ def run_scheduler(once: bool = False) -> None:
     print(f"{'='*60}\n")
 
     if once:
-        _execute_full_pipeline()
+        _execute_full_pipeline(name_filter=name_filter)
         return
 
     # ── Loop forever ──
@@ -202,11 +203,14 @@ def run_scheduler(once: bool = False) -> None:
         time.sleep(CHECK_INTERVAL_SEC)
 
 
-def _execute_full_pipeline() -> dict:
+def _execute_full_pipeline(name_filter: Optional[str] = None) -> dict:
     """
     Run the entire JobPilot pipeline for ALL candidates:
       1. Phase 2: parse_resumes pipeline (fetch sheet -> download -> extract -> analyze)
       2. Phase 3: for each profile -> search -> score -> email
+
+    Args:
+        name_filter: If set, only process candidates whose name contains this string.
 
     Returns a dict summarising the run (also appended to the run log).
     """
@@ -242,14 +246,7 @@ def _execute_full_pipeline() -> dict:
 
         # Count skipped by dedup (profiles without parsed_resume = no-consent or dedup'd)
         # The pipeline's output already shows the skip count in print statements
-        print(f"  Phase 2 complete: {len(profiles)} profile(s) processed")
-
-        if not profiles:
-            print("  No profiles to search for. Skipping Phase 3.")
-            result["run_end"] = datetime.now().isoformat()
-            result["success"] = True
-            _append_run_log(result)
-            return result
+        print(f"  Phase 2 complete: {len(profiles)} new profile(s) processed")
 
         # ── Phase 3: Search + email for each candidate ──
         print("\n--- Phase 3: Job Search Agents ---")
@@ -269,6 +266,17 @@ def _execute_full_pipeline() -> dict:
             name = combined.get("full_name", fpath.stem)
             email = combined.get("email") or form_data.get("email") or ""
             candidates.append((name, email, combined))
+
+        # Filter by name if --name was specified
+        if name_filter:
+            before = len(candidates)
+            candidates = [
+                (n, e, p) for n, e, p in candidates
+                if name_filter.lower() in n.lower()
+            ]
+            filtered_out = before - len(candidates)
+            if filtered_out:
+                print(f"  Filtered out {filtered_out} candidate(s) not matching name '{name_filter}'")
 
         # Cross-reference against current sheet — only process active entries
         sheet_entries = get_current_sheet_entries()
@@ -341,6 +349,15 @@ if __name__ == "__main__":
         action="store_true",
         help="Run the full pipeline once and exit (for testing).",
     )
+    parser.add_argument(
+        "--name",
+        default=None,
+        help="Only process candidates whose name contains this substring (e.g. --name Sreedhar).",
+    )
     args = parser.parse_args()
 
-    run_scheduler(once=args.once)
+    if args.name:
+        # --name implies --once: run once for specific candidate(s)
+        run_scheduler(once=True, name_filter=args.name)
+    else:
+        run_scheduler(once=args.once)

@@ -88,6 +88,12 @@ def parse_job_experience(job: dict) -> tuple[Optional[int], Optional[int]]:
     if raw in ("fresher", "entry level", "entry", "0 yr"):
         return (0, 1)
 
+    # Guard: must contain "yr" / "year" for a valid experience string.
+    # Naukri sometimes puts walk-in dates ("24 Jun - 25 Jun") in the
+    # experience field, which the regex would wrongly parse as 24-25 yrs.
+    if "yr" not in raw and "year" not in raw:
+        return (None, None)
+
     nums = re.findall(r"\d+", raw)
     if len(nums) >= 2:
         return (int(nums[0]), int(nums[1]))

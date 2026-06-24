@@ -207,6 +207,183 @@ def _build_csv_bytes(jobs: list[dict]) -> bytes:
     return output.getvalue().encode("utf-8")
 
 
+def send_no_jobs_notification(
+    recipient_email: str,
+    candidate_name: str,
+) -> bool:
+    """
+    Send a notification email when no new jobs were found for a candidate.
+
+    Args:
+        recipient_email: Candidate's email address.
+        candidate_name: Candidate's name for the greeting.
+
+    Returns:
+        True if the email was sent successfully, False otherwise.
+    """
+    if not is_email_configured():
+        logger.warning("SMTP not configured — skipping email")
+        return False
+
+    cfg = _smtp_config()
+    if not recipient_email:
+        logger.warning("No recipient email — skipping")
+        return False
+
+    ts = datetime.now().strftime("%A, %B %d, %Y")
+
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {{
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }}
+        .header {{
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: white;
+            border-radius: 12px 12px 0 0;
+            padding: 32px 24px;
+            text-align: center;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 26px;
+        }}
+        .header p {{
+            margin: 6px 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }}
+        .body-card {{
+            background: white;
+            border-radius: 0 0 12px 12px;
+            padding: 28px 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }}
+        .greeting {{
+            font-size: 16px;
+            color: #1e293b;
+            margin: 0 0 16px;
+        }}
+        .message {{
+            color: #334155;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 16px;
+        }}
+        .no-jobs-box {{
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            text-align: center;
+        }}
+        .no-jobs-box p {{
+            margin: 0;
+            font-size: 14px;
+            color: #9a3412;
+        }}
+        .footer {{
+            text-align: center;
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 20px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>JobPilot</h1>
+            <p>Your Weekly Job Matches</p>
+        </div>
+        <div class="body-card">
+            <p class="greeting">Dear <strong>{candidate_name}</strong>,</p>
+
+            <div class="no-jobs-box">
+                <p><strong>No new job matches found this week.</strong></p>
+            </div>
+
+            <p class="message">
+                We checked Naukri.com for opportunities matching your profile, but
+                there are no new listings beyond what we've already sent you in
+                previous reports.
+            </p>
+
+            <p class="message">
+                Don't worry — JobPilot will keep searching and notify you as soon
+                as something new pops up. You don't need to do anything.
+            </p>
+
+            <p class="message">
+                Best of luck with your applications!<br>
+                &mdash; The JobPilot Team
+            </p>
+        </div>
+        <div class="footer">
+            JobPilot &bull; Automated Job Matching System &bull; {ts}
+        </div>
+    </div>
+</body>
+</html>"""
+
+    # ── Build message ──
+    msg = MIMEMultipart("alternative")
+    msg["From"] = formataddr((cfg["from_name"], cfg["from_email"]))
+    msg["To"] = recipient_email
+    msg["Subject"] = Header(
+        f"JobPilot — No New Job Matches This Week ({datetime.now().strftime('%d %b %Y')})",
+        "utf-8",
+    )
+    msg["Date"] = formatdate(localtime=True)
+    msg["X-Mailer"] = "JobPilot-1.0"
+    msg["Message-ID"] = make_msgid(domain="jobpilot.local")
+
+    part_html = MIMEText(html, "html", "utf-8")
+    msg.attach(part_html)
+
+    # ── Send ──
+    try:
+        logger.info("Connecting to SMTP %s:%d ...", cfg["host"], cfg["port"])
+        server = smtplib.SMTP(cfg["host"], cfg["port"])
+        server.set_debuglevel(1)
+        server.starttls()
+        server.login(cfg["user"], cfg["password"])
+        result = server.sendmail(cfg["from_email"], [recipient_email], msg.as_string())
+        server.quit()
+        if result:
+            logger.warning("SMTP deferred delivery for %s: %s", recipient_email, result)
+            print(f"  [Email] SMTP accepted but deferred — check spam folder: {result}")
+        else:
+            logger.info("No-jobs notification accepted by SMTP for %s", recipient_email)
+            print(f"  [Email] ✓ No-jobs notification sent to {recipient_email}")
+        return True
+    except smtplib.SMTPAuthenticationError:
+        logger.error(
+            "SMTP authentication failed for %s — check SMTP_USER / SMTP_PASSWORD",
+            cfg["user"],
+        )
+    except smtplib.SMTPException as e:
+        logger.error("SMTP error: %s", e)
+    except Exception as e:
+        logger.error("Failed to send email: %s", e)
+
+    return False
+
+
 def send_job_report(
     recipient_email: str,
     candidate_name: str,

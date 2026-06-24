@@ -77,6 +77,11 @@ def main():
         default=7,
         help="Naukri freshness filter in days (default: 7 = last week).",
     )
+    parser.add_argument(
+        "--no-email",
+        action="store_true",
+        help="Run the search but do NOT send any email.",
+    )
 
     args = parser.parse_args()
 
@@ -150,7 +155,7 @@ def main():
             model=args.model,
             max_pages_per_keyword=args.pages,
             freshness_days=args.freshness,
-            recipient_email=email if email else None,
+            recipient_email=None if args.no_email else (email if email else None),
         )
         all_results[name] = results
 

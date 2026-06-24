@@ -21,7 +21,16 @@
       "Bash(python scripts/search_jobs.py --name \"Izaan\" --pages 2)",
       "Bash(python __debug_scoring.py)",
       "Bash(python *)",
-      "Bash(SMTP_USER=\"\" SMTP_PASSWORD=\"\" python scripts/search_jobs.py --freshness 7 --pages 1 --name \"Sachin\")"
+      "Bash(SMTP_USER=\"\" SMTP_PASSWORD=\"\" python scripts/search_jobs.py --freshness 7 --pages 1 --name \"Sachin\")",
+      "Bash(pip list *)",
+      "Bash(find D:/JobPilot -maxdepth 1 -not -path '*/\\\\.*')",
+      "Skill(deep-research)",
+      "Workflow(deep-research)",
+      "WebFetch(domain:in.indeed.com)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(python scripts/scrape_jobs.py \"python developer\" --source naukri --pages 1)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(git diff *)"
     ]
   }
 }
